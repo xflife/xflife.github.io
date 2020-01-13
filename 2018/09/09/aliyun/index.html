@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="docs," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="目的是让’前端统治世界’，哈哈哈哈！！！人家开个玩笑啦啦啦。其实目前上传有以下缺点：  第一 ：上传慢。先上传到应用服务器，再上传到OSS，网络传送多了一倍。如果数据直传到OSS，不走应用服务器，速度将大大提升，而且OSS是采用BGP带宽，能保证各地各运营商的速度； 第二 ：扩展性不好。如果后续用户多了，应用服务器会成为瓶颈； 深度整合 ：费用高。由于OSS上传流量是免费的。如果数据直传到OSS，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="阿里云上传--web 通过 STS 授权直传">
+<meta property="og:url" content="http://yoursite.com/2018/09/09/aliyun/index.html">
+<meta property="og:site_name" content="MuYue&#39;s Blog">
+<meta property="og:description" content="目的是让’前端统治世界’，哈哈哈哈！！！人家开个玩笑啦啦啦。其实目前上传有以下缺点：  第一 ：上传慢。先上传到应用服务器，再上传到OSS，网络传送多了一倍。如果数据直传到OSS，不走应用服务器，速度将大大提升，而且OSS是采用BGP带宽，能保证各地各运营商的速度； 第二 ：扩展性不好。如果后续用户多了，应用服务器会成为瓶颈； 深度整合 ：费用高。由于OSS上传流量是免费的。如果数据直传到OSS，">
+<meta property="og:image" content="http://static.timeface.cn/webupload/demo.png">
+<meta property="article:published_time" content="2018-09-08T16:00:00.000Z">
+<meta property="article:modified_time" content="2020-01-13T02:53:46.029Z">
+<meta property="article:author" content="MfLife">
+<meta property="article:tag" content="docs">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://static.timeface.cn/webupload/demo.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/09/09/aliyun/"/>
+
+
+
+
+
+  <title>阿里云上传--web 通过 STS 授权直传 | MuYue's Blog</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">MuYue's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">YueZhang</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-commonweal">
+          <a href="/404" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-heartbeat"></i> <br />
+            
+            公益404
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/09/09/aliyun/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="MfLife">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MuYue's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">阿里云上传--web 通过 STS 授权直传</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-09-09T00:00:00+08:00">
+                2018-09-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%96%87%E6%A1%A3/" itemprop="url" rel="index">
+                    <span itemprop="name">文档</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/09/09/aliyun/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2018/09/09/aliyun/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><strong>目的</strong>是让’前端统治世界’，哈哈哈哈！！！人家开个玩笑啦啦啦。其实目前上传有以下缺点：</p>
+<ul>
+<li><strong>第一</strong> ：上传慢。先上传到应用服务器，再上传到OSS，网络传送多了一倍。如果数据直传到OSS，不走应用服务器，速度将大大提升，而且OSS是采用BGP带宽，能保证各地各运营商的速度；</li>
+<li><strong>第二</strong> ：扩展性不好。如果后续用户多了，应用服务器会成为瓶颈；</li>
+<li><strong>深度整合</strong> ：费用高。由于OSS上传流量是免费的。如果数据直传到OSS，不走应用服务器，那么将能省下几台应用服务器。<a id="more"></a>
+</li>
+</ul>
+<hr>
+<h3 id="阿里云直传流程"><a href="#阿里云直传流程" class="headerlink" title="阿里云直传流程"></a>阿里云直传流程</h3><p><strong>1</strong>：请求 STS 授权，并且缓存其返回信息；<br><strong>2</strong>：计算文件 MD5 ；<br><strong>3</strong>：构造阿里云直传需要的参数；<br><strong>4</strong>：进行判断图片在库是否存在；如果存在请看 <code>5</code>，如果不存在请看 <code>6</code>；<br><strong>5</strong>：资源存在，如果是<code>图片</code>可以请求阿里云获得图片资源信息；<br><strong>6</strong>：开始上传，上传成功后，如果是<code>图片</code>可以请求阿里云获得图片资源信息；<br><strong>7</strong>：上传失败,判断是否是 <code>403 Forbidden</code>错误，如果是，返回 1；其他错误，自己处理。</p>
+<h2 id="废话不多说，上代码："><a href="#废话不多说，上代码：" class="headerlink" title="废话不多说，上代码："></a>废话不多说，上代码：</h2><h3 id="得到文件名后缀"><a href="#得到文件名后缀" class="headerlink" title="得到文件名后缀"></a>得到文件名后缀</h3><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> getSuffix = <span class="function">(<span class="params">filename</span>)=&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">let</span> pos = filename.lastIndexOf(<span class="string">'.'</span>)</span><br><span class="line">  <span class="keyword">let</span> suffix = <span class="string">''</span></span><br><span class="line">  <span class="keyword">if</span> (pos != <span class="number">-1</span>) &#123;</span><br><span class="line">    suffix = filename.substring(pos)</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> suffix;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="得到图片-MD5-方法"><a href="#得到图片-MD5-方法" class="headerlink" title="得到图片 MD5 方法"></a>得到图片 MD5 方法</h3><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> calculateImageMD5 = <span class="function">(<span class="params">params, handleCb</span>)=&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">let</span> blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice,</span><br><span class="line">    file = params.file,</span><br><span class="line">    chunkSize = <span class="number">2097152</span>,                             <span class="comment">// Read in chunks of 2MB</span></span><br><span class="line">    chunks = <span class="built_in">Math</span>.ceil(file.size / chunkSize),</span><br><span class="line">    currentChunk = <span class="number">0</span>,</span><br><span class="line">    spark = <span class="keyword">new</span> SparkMD5.ArrayBuffer(),</span><br><span class="line">    fileReader = <span class="keyword">new</span> FileReader();</span><br><span class="line">  fileReader.onload = <span class="function"><span class="keyword">function</span> (<span class="params">e</span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'read chunk nr'</span>, currentChunk + <span class="number">1</span>, <span class="string">'of'</span>, chunks);</span><br><span class="line">    spark.append(e.target.result);                   <span class="comment">// Append array buffer</span></span><br><span class="line">    currentChunk++;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (currentChunk &lt; chunks) &#123;</span><br><span class="line">      loadNext();</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="built_in">console</span>.log(<span class="string">'finished loading'</span>);</span><br><span class="line">      <span class="keyword">let</span> filename = <span class="string">'/'</span> + spark.end() + getSuffix(params.file.name);</span><br><span class="line">      <span class="built_in">console</span>.info(<span class="string">'computed hash'</span>, filename);  <span class="comment">// Compute hash</span></span><br><span class="line"></span><br><span class="line">      <span class="built_in">console</span>.warn(<span class="string">'文件 MD5计算完成，开始阿里云上传'</span>,<span class="keyword">new</span> <span class="built_in">Date</span>());</span><br><span class="line">      <span class="comment">//开始阿里云上传</span></span><br><span class="line">      uploadForALiYun(params, filename, handleCb);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;;</span><br><span class="line"></span><br><span class="line">  fileReader.onerror = <span class="function"><span class="keyword">function</span> (<span class="params"></span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.warn(<span class="string">'oops, something went wrong.'</span>);</span><br><span class="line">  &#125;;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">function</span> <span class="title">loadNext</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">    <span class="keyword">var</span> start = currentChunk * chunkSize,</span><br><span class="line">      end = ((start + chunkSize) &gt;= file.size) ? file.size : start + chunkSize;</span><br><span class="line"></span><br><span class="line">    fileReader.readAsArrayBuffer(blobSlice.call(file, start, end));</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  loadNext();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="STS-请求-伪代码"><a href="#STS-请求-伪代码" class="headerlink" title="STS 请求 伪代码"></a>STS 请求 伪代码</h3><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"> <span class="keyword">const</span> stsReuest =&gt;(params) &#123;</span><br><span class="line">  <span class="keyword">let</span> defer = Q.defer();</span><br><span class="line">  <span class="keyword">if</span>(!<span class="built_in">window</span>.STSOBJEACT)&#123;</span><br><span class="line">    HttpClient.post(<span class="string">'你的STS授权接口'</span>, &#123;<span class="attr">url</span>: <span class="string">'阿里云图片域名'</span>, <span class="attr">dir</span>: <span class="string">'阿里云图片目录'</span> &#125;)</span><br><span class="line">      .then(<span class="function">(<span class="params">res</span>) =&gt;</span> &#123;</span><br><span class="line">        <span class="built_in">window</span>.STSOBJEACT = res;</span><br><span class="line">        <span class="comment">//计算图片  MD5</span></span><br><span class="line">        calculateImageMD5(params,handleCb);</span><br><span class="line">        defer.resolve(res);</span><br><span class="line">      &#125;, (err)=&gt; &#123;</span><br><span class="line">        defer.reject(err);</span><br><span class="line">      &#125;);</span><br><span class="line">  &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">    calculateImageMD5(params,handleCb);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> defer.promise;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="阿里云直传-伪代码-–-包含判断图片是否重复"><a href="#阿里云直传-伪代码-–-包含判断图片是否重复" class="headerlink" title="阿里云直传 伪代码 – 包含判断图片是否重复"></a>阿里云直传 伪代码 – 包含判断图片是否重复</h3><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">uploadForALiYun</span>(<span class="params">param, filename, handleCb</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">let</span> defer = Q.defer();</span><br><span class="line">  <span class="keyword">let</span> params = &#123;</span><br><span class="line">    name: <span class="string">'file'</span>,</span><br><span class="line">    file: param.file,</span><br><span class="line">    fields: [</span><br><span class="line">      &#123;<span class="attr">name</span>: <span class="string">'key'</span>, <span class="attr">value</span>: <span class="built_in">window</span>.STSOBJEACT.dir + filename&#125;,</span><br><span class="line">      &#123;<span class="attr">name</span>: <span class="string">'policy'</span>, <span class="attr">value</span>: <span class="built_in">window</span>.STSOBJEACT.policy&#125;,</span><br><span class="line">      &#123;<span class="attr">name</span>: <span class="string">'OSSAccessKeyId'</span>, <span class="attr">value</span>: <span class="built_in">window</span>.STSOBJEACT.accessid&#125;,</span><br><span class="line">      &#123;<span class="attr">name</span>: <span class="string">'success_action_status'</span>, <span class="attr">value</span>: <span class="number">200</span>&#125;,</span><br><span class="line">      &#123;<span class="attr">name</span>: <span class="string">'signature'</span>, <span class="attr">value</span>: <span class="built_in">window</span>.STSOBJEACT.signature&#125;,</span><br><span class="line">    ]</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">let</span> imageALiPath = <span class="string">'http://'</span> + utils.aLiUploadUrl + <span class="string">'/'</span> + utils.aLiUploadDir + filename;</span><br><span class="line">  <span class="comment">//判断图片存在与否</span></span><br><span class="line">  HttpClient.head(imageALiPath).then(<span class="function"><span class="params">()</span>=&gt;</span>&#123;</span><br><span class="line">    <span class="comment">//直接得到图片信息</span></span><br><span class="line">    getImageInfo(imageALiPath,handleCb);</span><br><span class="line">  &#125;,()=&gt;&#123;</span><br><span class="line">    <span class="comment">//上传图片</span></span><br><span class="line">    HttpClient.upload(<span class="string">'http://'</span> + utils.aLiUploadUrl, params)</span><br><span class="line">      .then(<span class="function"><span class="params">()</span> =&gt;</span> &#123;</span><br><span class="line">        getImageInfo(imageALiPath,handleCb);</span><br><span class="line">        defer.resolve();</span><br><span class="line">      &#125;, (err) =&gt; &#123;</span><br><span class="line">        <span class="comment">//没有权限</span></span><br><span class="line">        <span class="keyword">if</span> (err.code == <span class="number">403</span>) &#123;</span><br><span class="line">          <span class="built_in">window</span>.STSOBJEACT = <span class="literal">null</span>;</span><br><span class="line">          uploadImageApi(params, handleCb);</span><br><span class="line">        &#125;</span><br><span class="line">        defer.reject(err);</span><br><span class="line">      &#125;);</span><br><span class="line">  &#125;);</span><br><span class="line">  <span class="keyword">return</span> defer.promise;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><strong>注意：</strong>如果检测<code>图片重复</code>接口出现<code>404 Not Found</code>,可能 HTTP Cache 机制导致的，建议直接加个标识:<br>let imageALiPath = ‘http://‘ + utils.aLiUploadUrl + ‘/‘ + utils.aLiUploadDir + filename <code>+ &#39;?(time=)&#39;+new Date().getTime();</code></p>
+</blockquote>
+<h3 id="得到图片信息，并且返回"><a href="#得到图片信息，并且返回" class="headerlink" title="得到图片信息，并且返回"></a>得到图片信息，并且返回</h3><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">getImageInfo</span>(<span class="params">imageALiPath,handleCb</span>)</span>&#123;</span><br><span class="line">  <span class="keyword">let</span> defer = Q.defer();</span><br><span class="line">  <span class="built_in">console</span>.warn(<span class="string">'阿里云上传完成，开始获取图片信息'</span>, <span class="keyword">new</span> <span class="built_in">Date</span>());</span><br><span class="line">  <span class="comment">//获取图片地址</span></span><br><span class="line">  HttpClient.get(imageALiPath + <span class="string">'@infoexif'</span>)</span><br><span class="line">    .then(<span class="function">(<span class="params">result</span>) =&gt;</span> &#123;</span><br><span class="line">      <span class="keyword">let</span> image_result_object = &#123;</span><br><span class="line">        <span class="string">"data"</span>: &#123;</span><br><span class="line">          <span class="string">"image_rotation"</span>: <span class="number">0.0</span>,</span><br><span class="line">          <span class="string">"image_tags"</span>: [],</span><br><span class="line">          <span class="string">"imageHwlv"</span>: <span class="number">0.0</span>,</span><br><span class="line">          <span class="string">"image_padding_right"</span>: <span class="number">0.0</span>,</span><br><span class="line">          <span class="string">"image_primary_color"</span>: <span class="string">""</span>,</span><br><span class="line">          <span class="string">"image_height"</span>: <span class="number">0.0</span>,</span><br><span class="line">          <span class="string">"image_padding_top"</span>: <span class="number">0.0</span>,</span><br><span class="line">          <span class="string">"image_date"</span>: <span class="string">''</span>,</span><br><span class="line">          <span class="string">"image_id"</span>: <span class="string">"0"</span>,</span><br><span class="line">          <span class="string">"image_orientation"</span>: <span class="number">0</span>,</span><br><span class="line">          <span class="string">"image_start_point_x"</span>: <span class="number">0.0</span>,</span><br><span class="line">          <span class="string">"image_flip_vertical"</span>: <span class="number">0</span>,</span><br><span class="line">          <span class="string">"imageWhlv"</span>: <span class="number">0.0</span>,</span><br><span class="line">          <span class="string">"image_start_point_y"</span>: <span class="number">0.0</span>,</span><br><span class="line">          <span class="string">"image_remark"</span>: <span class="string">""</span>,</span><br><span class="line">          <span class="string">"image_scale_vertical"</span>: <span class="number">0.0</span>,</span><br><span class="line">          <span class="string">"image_padding_left"</span>: <span class="number">0.0</span>,</span><br><span class="line">          <span class="string">"image_url"</span>: <span class="string">""</span>,</span><br><span class="line">          <span class="string">"image_padding_bottom"</span>: <span class="number">0.0</span>,</span><br><span class="line">          <span class="string">"image_width"</span>: <span class="number">0.0</span>,</span><br><span class="line">          <span class="string">"image_scale"</span>: <span class="number">0.0</span>,</span><br><span class="line">          <span class="string">"image_flip_horizontal"</span>: <span class="number">0</span>,</span><br><span class="line">          <span class="string">"image_content"</span>: <span class="string">""</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">"error_code"</span>: <span class="number">10000</span>,</span><br><span class="line">        <span class="string">"info"</span>: <span class="string">"接口响应正常！"</span></span><br><span class="line">      &#125;;</span><br><span class="line">      image_result_object.data.image_orientation = result.Orientation &amp;&amp; result.Orientation.value || <span class="string">'0'</span>;</span><br><span class="line">      image_result_object.data.image_width = result.ImageWidth.value;</span><br><span class="line">      image_result_object.data.image_height = result.ImageHeight.value;</span><br><span class="line">      image_result_object.data.image_url = imageALiPath;</span><br><span class="line">      image_result_object.data.image_date = result.DateTimeOriginal &amp;&amp; <span class="keyword">new</span> <span class="built_in">Date</span>(result.DateTimeOriginal.value.split(<span class="string">" "</span>)[<span class="number">0</span>])</span><br><span class="line">          .getTime() / <span class="number">1000</span> || <span class="keyword">new</span> <span class="built_in">Date</span>().getTime() / <span class="number">1000</span>;</span><br><span class="line">      <span class="built_in">console</span>.log(<span class="string">'image_result_object'</span>, image_result_object);</span><br><span class="line">      <span class="comment">//处理成功回调</span></span><br><span class="line">      handleCb &amp;&amp; handleCb.handleSuccess(<span class="built_in">Object</span>.assign(&#123;&#125;, image_result_object));</span><br><span class="line">      defer.resolve(<span class="built_in">Object</span>.assign(&#123;&#125;, image_result_object));</span><br><span class="line">    &#125;, (err) =&gt; &#123;</span><br><span class="line">      handleCb &amp;&amp; handleCb.handleError(err);</span><br><span class="line">      defer.reject(err);</span><br><span class="line">    &#125;);</span><br><span class="line">  <span class="keyword">return</span> defer.promise;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<blockquote>
+<p><strong>注意：</strong>如果请求<code>上传</code>接口出现<code>400 Bad Request</code>,可能是参数顺序有误，可以参考下图参数顺序。</p>
+</blockquote>
+<p><img src="http://static.timeface.cn/webupload/demo.png" alt="示例上传参数顺序"></p>
+<h2 id="反馈与建议"><a href="#反馈与建议" class="headerlink" title="反馈与建议"></a>反馈与建议</h2><ul>
+<li>微信：其实我是不会告诉你的！！！</li>
+<li>邮箱：<a href="mailto:&#120;&#102;&#x5f;&#x6c;&#105;&#102;&#101;&#64;&#121;&#101;&#97;&#104;&#x2e;&#x6e;&#101;&#x74;">&#120;&#102;&#x5f;&#x6c;&#105;&#102;&#101;&#64;&#121;&#101;&#97;&#104;&#x2e;&#x6e;&#101;&#x74;</a></li>
+</ul>
+<hr>
+<p>感谢阅读这份帮助文档。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>Donate comment here</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpay.jpg" alt="MfLife 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+      <div id="alipay" style="display: inline-block">
+        <img id="alipay_qr" src="/images/alipay.jpg" alt="MfLife 支付宝"/>
+        <p>支付宝</p>
+      </div>
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/docs/" rel="tag"># docs</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/06/10/markdown/" rel="next" title="欢迎使用马克飞象">
+                <i class="fa fa-chevron-left"></i> 欢迎使用马克飞象
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript" target="_blank" rel="noopener">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/avatar.jpg"
+                alt="MfLife" />
+            
+              <p class="site-author-name" itemprop="name">MfLife</p>
+              <p class="site-description motion-element" itemprop="description">「斯人若彩虹，遇上方知有。」</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#阿里云直传流程"><span class="nav-number">1.</span> <span class="nav-text">阿里云直传流程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#废话不多说，上代码："><span class="nav-number"></span> <span class="nav-text">废话不多说，上代码：</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#得到文件名后缀"><span class="nav-number">1.</span> <span class="nav-text">得到文件名后缀</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#得到图片-MD5-方法"><span class="nav-number">2.</span> <span class="nav-text">得到图片 MD5 方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#STS-请求-伪代码"><span class="nav-number">3.</span> <span class="nav-text">STS 请求 伪代码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#阿里云直传-伪代码-–-包含判断图片是否重复"><span class="nav-number">4.</span> <span class="nav-text">阿里云直传 伪代码 – 包含判断图片是否重复</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#得到图片信息，并且返回"><span class="nav-number">5.</span> <span class="nav-text">得到图片信息，并且返回</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#反馈与建议"><span class="nav-number"></span> <span class="nav-text">反馈与建议</span></a></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">MfLife</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Gemini</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://MfLife.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://yoursite.com/2018/09/09/aliyun/';
+          this.page.identifier = '2018/09/09/aliyun/';
+          this.page.title = '阿里云上传--web 通过 STS 授权直传';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://MfLife.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
